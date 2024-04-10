@@ -49,10 +49,10 @@ export function generate50bZkArguments(circuitPath, inputsPath) {
 
   const base64R1cs = fs
     .readFileSync(`./output/${circuitName}.r1cs`)
-    .toString("base64url");
+    .toString("base64");
   const base64Witness = fs
     .readFileSync(`./output/${circuitName}.wtns`)
-    .toString("base64url");
+    .toString("base64");
 
   fs.rmSync("./output", { recursive: true });
 
@@ -62,7 +62,7 @@ export function generate50bZkArguments(circuitPath, inputsPath) {
 export function encryptWitness(base64EnclavePublicKey, base64Witness) {
   const enclavePublicKey = Buffer.from(
     base64EnclavePublicKey,
-    "base64url"
+    "base64"
   ).toString("utf-8");
 
   const aes_key = crypto.randomBytes(32);
@@ -72,7 +72,7 @@ export function encryptWitness(base64EnclavePublicKey, base64Witness) {
   const base64EncryptedWitness = Buffer.concat([
     cipher_aes.update(Buffer.from(base64Witness, "utf8")),
     cipher_aes.final(),
-  ]).toString("base64url");
+  ]).toString("base64");
 
   const base64EncryptedAesKey = crypto
     .publicEncrypt(
@@ -83,11 +83,11 @@ export function encryptWitness(base64EnclavePublicKey, base64Witness) {
       },
       aes_key
     )
-    .toString("base64url");
+    .toString("base64");
 
   return {
     base64EncryptedWitness,
     base64EncryptedAesKey,
-    base64AesIv: aes_iv.toString("base64url"),
+    base64AesIv: aes_iv.toString("base64"),
   };
 }
