@@ -2,6 +2,8 @@ import { execSync } from "child_process";
 import fs from "fs";
 import crypto from "crypto";
 import { plonk } from "snarkjs";
+import solc from "solc"
+
 
 export function createJob() {
   return {
@@ -58,13 +60,8 @@ export async function generate50bZkArguments(circuitPath, inputsPath) {
     .readFileSync(`./output/${circuitName}.wtns`)
     .toString("base64");
 
-  execSync(
-    `snarkjs plonk setup output/${circuitName}.r1cs powersOfTau15_final.ptau output/${circuitName}.zKey`
-  )
-
-  execSync(
-    `snarkjs zkey export solidityverifier output/${circuitName}.zKey verifier.sol`
-  );
+  generateSolidityContractVerifier(circuitName)
+  deployVerifierContract(circuitName)
 
   fs.rmSync("./output", { recursive: true });
 
@@ -103,3 +100,38 @@ export function encryptWitness(base64EnclavePublicKey, base64Witness) {
     base64AesIv: aes_iv.toString("base64"),
   };
 }
+
+const generateSolidityContractVerifier = (circuitName) => {
+  execSync(
+    `snarkjs plonk setup output/${circuitName}.r1cs powersOfTau15_final.ptau output/${circuitName}.zKey`
+  )
+
+  execSync(
+    `snarkjs zkey export solidityverifier output/${circuitName}.zKey output/verifier.sol`
+  );
+}
+
+const deployVerifierContract = () => {
+  const contractCode = fs.readFileSync("output/verifier.sol", 'utf8');
+
+  var input = {
+    language: 'Solidity',
+    sources: {
+      'verifier.sol': {
+        content: contractCode
+      }
+    },
+    settings: {
+      outputSelection: {
+        '*': {
+          '*': ['*']
+        }
+      }
+    }
+  };
+
+  var output = JSON.parse(solc.compile(JSON.stringify(input)));
+
+  console.log("output", output)
+}
+

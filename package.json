@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "snarkjs": "^0.7.3"
+    "snarkjs": "^0.7.3",
+    "solc": "^0.8.25"
   }
 }
