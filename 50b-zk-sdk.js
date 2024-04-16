@@ -112,9 +112,9 @@ const generateSolidityContractVerifier = (circuitName) => {
 }
 
 const deployVerifierContract = () => {
-  const contractCode = fs.readFileSync("output/verifier.sol", 'utf8');
+  const contractCode = fs.readFileSync("output/verifier.sol", 'utf8').replace(`import "hardhat/console.sol";`, "")
 
-  var input = {
+  const input = {
     language: 'Solidity',
     sources: {
       'verifier.sol': {
@@ -130,8 +130,9 @@ const deployVerifierContract = () => {
     }
   };
 
-  var output = JSON.parse(solc.compile(JSON.stringify(input)));
+  const output = JSON.parse(solc.compile(JSON.stringify(input)));
+  const contractBytecode = output.contracts['verifier.sol']['PlonkVerifier'].evm.bytecode.object
 
-  console.log("output", output)
+  console.log(contractBytecode)
 }
 
