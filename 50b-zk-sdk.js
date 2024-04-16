@@ -1,12 +1,13 @@
 import { execSync } from "child_process";
 import fs from "fs";
 import crypto from "crypto";
+import { plonk } from "snarkjs";
 
 export function createJob() {
   return {
     jobId: "123",
     base64EnclavePublicKey:
-      "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUE3OG5DUXZhMTFsZkRWVXAxOUFMZgpZSTJtSkpYQWpDYVNtRUJqSnYxdi9UUE90Ylc1alF0K3ZOMkZqd3QxVXVMU0lRWE9pUDN0M3c1MEhPUXdMMlh3Cks0OVN5Wk1JVGh5dmRNU1NTNVlwNUFrQi9CaDdVNTl1M2FVNTNrbkt5WlJ2Q3Y3eEJkdDJqcThRVkhZdUZLSTQKbXlFMGRLMWlkMkl0eWUyV2MzSVdob0tMUlZjTVprOUFxS1B2NGJ0Y1k3T3JaeEZkK1k3SzBYM1FBSUNMWUwxQQpSTGVaY2ZwTzlrRG1RUTFXYnZoNWFySm85M1RENml6aVIybjhEK3RqSzN6M3pTUFNZSEIwbEhSTFVyOEdJUjBNCi9GOFZBcDRjSVRsSkdIQVp6aEpmWE50bmNUaUZDNGNKblM5cVg3dzR0anpKMUF3ckg3K3JPVXBGTmZWR1NuWWoKeHdJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t",
+      "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUE3cExRei9lMVo5eURLZUJJSC9ocwpEa0Fndmx3bktoYmpZT2Z0UlIxbjJsRTFMRlQrR0tSK1l0bk5qak5VREluY2M1Z0tVTFdqTmRXdzBYdWs4OFZUCnZRQ2dQL3NUZjRtUlAzL3E3RTgxdmZLNWU2VHliZ2JUbCtQVjVBbzd3aHJoblQzYmNKWGVubVZka1ZTUVJZV04KTEZ2cnJic2lXWmJKa1BwOFNmOEoxZzF0aURoWjJaSkUrWXJKT0hybXM5dmVvQXgrY3JLaHhlaFlLb3ppRUI4dwpaeEUwU1pqOEdtOXVmeVpmK3EvL3pqYTNKWTNrcFN5R3FmRUFPK2tHc1pFM0RJKzBoQmpVaWN1Ly91N0UxZFpXCjRQYlluOXZnUUxwSzN6a01XdjZiL3FqUHI2Ty94TGZsVCtxMXBZUmRXYUZneld0S2JvSDJERlY0eU9LWERRS0gKTXdJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t",
   };
 }
 
@@ -17,9 +18,12 @@ export function startJob(
   base64EncryptedAesKey,
   base64AesIv
 ) {
-  console.log(
-    `jobId=${jobId}&r1cs=${base64R1cs}&witness=${base64EncryptedWitness}&key=${base64EncryptedAesKey}&iv=${base64AesIv}`
-  );
+  fs.writeFileSync(`info.json`, JSON.stringify({
+    witness: base64EncryptedWitness,
+    aesKey: base64EncryptedAesKey,
+    aesIv: base64AesIv,
+  }));
+  console.log(`Generated data`);
 }
 
 function compileCircom(circuitPath) {
@@ -37,7 +41,7 @@ function generateWitness(circuitName, inputsPath) {
   );
 }
 
-export function generate50bZkArguments(circuitPath, inputsPath) {
+export async function generate50bZkArguments(circuitPath, inputsPath) {
   if (!fs.existsSync("./output")) {
     fs.mkdirSync("./output");
   }
@@ -53,6 +57,14 @@ export function generate50bZkArguments(circuitPath, inputsPath) {
   const base64Witness = fs
     .readFileSync(`./output/${circuitName}.wtns`)
     .toString("base64");
+
+  execSync(
+    `snarkjs plonk setup output/${circuitName}.r1cs powersOfTau15_final.ptau output/${circuitName}.zKey`
+  )
+
+  execSync(
+    `snarkjs zkey export solidityverifier output/${circuitName}.zKey verifier.sol`
+  );
 
   fs.rmSync("./output", { recursive: true });
 
