@@ -3,6 +3,8 @@ import fs from "fs";
 import crypto from "crypto";
 import { plonk } from "snarkjs";
 import solc from "solc"
+import { ethers } from 'ethers';
+
 
 
 export function createJob() {
@@ -61,7 +63,7 @@ export async function generate50bZkArguments(circuitPath, inputsPath) {
     .toString("base64");
 
   generateSolidityContractVerifier(circuitName)
-  deployVerifierContract(circuitName)
+  // deployVerifierContract(circuitName)
 
   fs.rmSync("./output", { recursive: true });
 
@@ -111,7 +113,7 @@ const generateSolidityContractVerifier = (circuitName) => {
   );
 }
 
-const deployVerifierContract = () => {
+const deployVerifierContract = async () => {
   const contractCode = fs.readFileSync("output/verifier.sol", 'utf8').replace(`import "hardhat/console.sol";`, "")
 
   const input = {
@@ -131,8 +133,26 @@ const deployVerifierContract = () => {
   };
 
   const output = JSON.parse(solc.compile(JSON.stringify(input)));
+  const contractAbi = output.contracts['verifier.sol']['PlonkVerifier'].abi
   const contractBytecode = output.contracts['verifier.sol']['PlonkVerifier'].evm.bytecode.object
+  
+  // const rpcUrl = 'https://rpc-testnet.morphl2.io'
+  const rpcUrl = 'https://rpc.goerli.linea.build'
 
-  console.log(contractBytecode)
+  const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+  
+  const privateKey = 'f2ebc5e18fe6d82fdbaa7e3fe28dacd9eaf470305c3be33dbe064866a25b1412'
+  const wallet = new ethers.Wallet(privateKey, provider);
+
+  const factory = new ethers.ContractFactory(contractAbi, contractBytecode, wallet);
+
+  const contract = await factory.deploy({
+    gasLimit: 8000000,
+    gasPrice: 1000000000
+  });
+
+  await contract.deployed();
+
+  console.log('Contract address:', contract.address);
 }
 
